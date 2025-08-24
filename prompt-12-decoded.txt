@@ -1,0 +1,1019 @@
+# PROMPT: Configuração de Repositório GitHub e Estratégia de Deploy
+
+## 🎯 OBJETIVO
+Configurar um repositório GitHub profissional com estratégia completa de deploy, incluindo CI/CD, branch protection, workflows automatizados, semantic versioning, documentação e integração com Vercel. Este prompt fornece uma metodologia completa para gerenciamento de código e deployments automatizados.
+
+## 🚨 VERIFICAÇÕES CRÍTICAS OBRIGATÓRIAS
+
+### ⚠️ ANTES de configurar o repositório, execute estas verificações:
+
+```bash
+# 1. Verificar Git e GitHub CLI
+git --version
+gh --version || echo "❌ GitHub CLI não instalado"
+
+# 2. Verificar autenticação GitHub
+gh auth status
+
+# 3. Verificar conta Vercel
+vercel --version
+vercel whoami
+
+# 4. Verificar estrutura do projeto
+ls -la
+[ -f "package.json" ] || echo "❌ package.json não encontrado"
+[ -f "next.config.js" ] || echo "❌ next.config.js não encontrado"
+
+# 5. Verificar .env.example
+[ -f ".env.example" ] || echo "❌ .env.example recomendado"
+
+# 6. Verificar dependências críticas
+npm list next react typescript
+```
+
+### 🔧 CORREÇÕES CRÍTICAS DE CONFIGURAÇÃO:
+
+#### 1. .gitignore Incompleto
+**Problema**: Arquivos sensíveis sendo commitados
+**Solução**: .gitignore completo e validado
+
+```gitignore
+# ❌ INCORRETO - .gitignore básico
+node_modules/
+.env
+
+# ✅ CORRETO - .gitignore completo
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Next.js
+/.next/
+/out/
+
+# Production
+/build
+
+# Misc
+.DS_Store
+*.log
+.env*.local
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Vercel
+.vercel
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+```
+
+#### 2. Configuração de Branch Protection Fraca
+**Problema**: Branch main não está protegida
+**Solução**: Configurar branch protection rules
+
+```yaml
+# ❌ INCORRETO - Sem proteção
+# Pushes diretos para main permitidos
+
+# ✅ CORRETO - Branch protection configurada
+# Via GitHub Settings > Branches > Add rule
+```
+
+#### 3. Workflows CI/CD Inadequados
+**Problema**: Não há validação automatizada
+**Solução**: GitHub Actions configurados
+
+```yaml
+# ❌ INCORRETO - Sem CI/CD
+# Deploys manuais sem validação
+
+# ✅ CORRETO - GitHub Actions
+name: CI/CD Pipeline
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+```
+
+#### 4. Semantic Versioning Não Implementado
+**Problema**: Versões não seguem padrão
+**Solução**: Implementar semantic-release
+
+```json
+// ❌ INCORRETO - Versioning manual
+{
+  "version": "1.0.0"
+}
+
+// ✅ CORRETO - Semantic release
+{
+  "version": "0.0.0-development",
+  "release": {
+    "branches": ["main"],
+    "plugins": [
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      "@semantic-release/changelog",
+      "@semantic-release/npm",
+      "@semantic-release/github"
+    ]
+  }
+}
+```
+
+## 📋 PRÉ-REQUISITOS
+
+### Ferramentas Necessárias:
+```bash
+# Git e GitHub CLI
+git --version
+npm install -g @github/cli
+
+# Vercel CLI
+npm install -g vercel
+
+# Ferramentas de desenvolvimento
+npm install -g semantic-release
+npm install -g commitizen
+npm install -g conventional-changelog-cli
+```
+
+### Estrutura do Repositório:
+```
+.
+├── .github/
+│   ├── workflows/
+│   │   ├── ci.yml              # CI/CD pipeline
+│   │   ├── deploy.yml          # Deploy pipeline
+│   │   └── release.yml         # Release pipeline
+│   ├── ISSUE_TEMPLATE/
+│   │   ├── bug_report.md       # Template para bugs
+│   │   └── feature_request.md  # Template para features
+│   └── pull_request_template.md # Template para PRs
+├── docs/
+│   ├── CONTRIBUTING.md         # Guia de contribuição
+│   ├── DEPLOYMENT.md           # Guia de deploy
+│   └── API.md                  # Documentação da API
+├── scripts/
+│   ├── setup.sh               # Script de setup
+│   └── deploy.sh              # Script de deploy
+├── .gitignore                 # Arquivos ignorados
+├── .env.example               # Exemplo de variáveis
+├── README.md                  # Documentação principal
+├── CHANGELOG.md               # Changelog automático
+└── package.json               # Configuração do projeto
+```
+
+## 🚀 CONFIGURAÇÃO COMPLETA DO REPOSITÓRIO
+
+### 1. Configuração Inicial do Repositório
+
+```bash
+#!/bin/bash
+# Script de configuração inicial
+
+# Criar repositório GitHub
+gh repo create my-nextjs-app --public --clone
+
+# Navegar para o diretório
+cd my-nextjs-app
+
+# Configurar Git
+git config user.name "Seu Nome"
+git config user.email "seu.email@exemplo.com"
+
+# Criar estrutura inicial
+mkdir -p .github/workflows
+mkdir -p .github/ISSUE_TEMPLATE
+mkdir -p docs scripts
+
+# Configurar branches
+git checkout -b develop
+git push -u origin develop
+git checkout main
+
+# Configurar branch protection
+gh api repos/:owner/:repo/branches/main/protection \
+  --method PUT \
+  --field required_status_checks='{"strict":true,"contexts":["ci"]}' \
+  --field enforce_admins=true \
+  --field required_pull_request_reviews='{"required_approving_review_count":1}' \
+  --field restrictions=null
+```
+
+### 2. GitHub Actions - CI/CD Pipeline (.github/workflows/ci.yml):
+
+```yaml
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run type checking
+      run: npm run type-check
+    
+    - name: Run linting
+      run: npm run lint
+    
+    - name: Run tests
+      run: npm run test:ci
+    
+    - name: Test build
+      run: npm run build
+    
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage/coverage-final.json
+        flags: unittests
+        name: codecov-umbrella
+
+  security:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Run security audit
+      run: npm audit --audit-level=high
+    
+    - name: Run CodeQL Analysis
+      uses: github/codeql-action/analyze@v2
+      with:
+        languages: javascript
+
+  deploy-staging:
+    needs: [test, security]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Deploy to Vercel (Staging)
+      uses: amondnet/vercel-action@v25
+      with:
+        vercel-token: ${{ secrets.VERCEL_TOKEN }}
+        vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+        vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+        scope: ${{ secrets.VERCEL_ORG_ID }}
+        alias-domains: staging.myapp.com
+
+  deploy-production:
+    needs: [test, security]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Deploy to Vercel (Production)
+      uses: amondnet/vercel-action@v25
+      with:
+        vercel-token: ${{ secrets.VERCEL_TOKEN }}
+        vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+        vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+        vercel-args: '--prod'
+        scope: ${{ secrets.VERCEL_ORG_ID }}
+        alias-domains: myapp.com
+    
+    - name: Notify deployment success
+      uses: 8398a7/action-slack@v3
+      if: success()
+      with:
+        status: success
+        channel: '#deployments'
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        message: 'Production deployment successful! 🚀'
+```
+
+### 3. Release Pipeline (.github/workflows/release.yml):
+
+```yaml
+name: Release Pipeline
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run tests
+      run: npm run test:ci
+    
+    - name: Build project
+      run: npm run build
+    
+    - name: Semantic Release
+      uses: cycjimmy/semantic-release-action@v3
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      with:
+        semantic_version: 19
+        extra_plugins: |
+          @semantic-release/changelog
+          @semantic-release/git
+    
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      if: steps.semantic.outputs.new_release_published == 'true'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.semantic.outputs.new_release_version }}
+        release_name: Release ${{ steps.semantic.outputs.new_release_version }}
+        body: ${{ steps.semantic.outputs.new_release_notes }}
+        draft: false
+        prerelease: false
+```
+
+### 4. Configuração de Dependabot (.github/dependabot.yml):
+
+```yaml
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "tech-lead"
+    assignees:
+      - "maintainer"
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "automated"
+    
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    reviewers:
+      - "tech-lead"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    labels:
+      - "ci"
+      - "automated"
+```
+
+### 5. Issue Templates (.github/ISSUE_TEMPLATE/bug_report.md):
+
+```markdown
+---
+name: Bug Report
+about: Create a report to help us improve
+title: '[BUG] '
+labels: bug
+assignees: ''
+---
+
+## 🐛 Bug Report
+
+### Description
+A clear and concise description of what the bug is.
+
+### Steps to Reproduce
+1. Go to '...'
+2. Click on '...'
+3. Scroll down to '...'
+4. See error
+
+### Expected Behavior
+A clear and concise description of what you expected to happen.
+
+### Actual Behavior
+A clear and concise description of what actually happened.
+
+### Screenshots
+If applicable, add screenshots to help explain your problem.
+
+### Environment
+- **OS**: [e.g. macOS, Windows, Linux]
+- **Browser**: [e.g. Chrome, Firefox, Safari]
+- **Version**: [e.g. 22]
+- **Device**: [e.g. iPhone X, Desktop]
+
+### Additional Context
+Add any other context about the problem here.
+
+### Possible Solution
+If you have suggestions on how to fix the bug, please describe them here.
+```
+
+### 6. Pull Request Template (.github/pull_request_template.md):
+
+```markdown
+## 📋 Pull Request
+
+### Description
+Brief description of what this PR does.
+
+### Type of Change
+- [ ] Bug fix (non-breaking change that fixes an issue)
+- [ ] New feature (non-breaking change that adds functionality)
+- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
+- [ ] Documentation update
+- [ ] Performance improvement
+- [ ] Code refactoring
+
+### Related Issues
+Closes #[issue number]
+
+### Changes Made
+- [ ] Change 1
+- [ ] Change 2
+- [ ] Change 3
+
+### Testing
+- [ ] Unit tests added/updated
+- [ ] Integration tests added/updated
+- [ ] E2E tests added/updated
+- [ ] Manual testing completed
+
+### Screenshots (if applicable)
+Add screenshots here to help explain your changes.
+
+### Checklist
+- [ ] My code follows the project's style guidelines
+- [ ] I have performed a self-review of my own code
+- [ ] I have commented my code, particularly in hard-to-understand areas
+- [ ] I have made corresponding changes to the documentation
+- [ ] My changes generate no new warnings
+- [ ] I have added tests that prove my fix is effective or that my feature works
+- [ ] New and existing unit tests pass locally with my changes
+- [ ] Any dependent changes have been merged and published
+
+### Deployment Notes
+Any special notes for deployment.
+```
+
+### 7. README.md Completo:
+
+```markdown
+# 🚀 My Next.js App
+
+[![CI/CD Pipeline](https://github.com/username/my-nextjs-app/actions/workflows/ci.yml/badge.svg)](https://github.com/username/my-nextjs-app/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/username/my-nextjs-app/branch/main/graph/badge.svg)](https://codecov.io/gh/username/my-nextjs-app)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+A modern, production-ready Next.js application with TypeScript, Tailwind CSS, and comprehensive DevOps setup.
+
+## 📋 Table of Contents
+
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Getting Started](#getting-started)
+- [Development](#development)
+- [Testing](#testing)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
+- [License](#license)
+
+## ✨ Features
+
+- ⚡ **Next.js 14** with App Router
+- 🔷 **TypeScript** for type safety
+- 🎨 **Tailwind CSS** for styling
+- 🔐 **Stack Auth** for authentication
+- 📊 **Neon Database** for data storage
+- 🚀 **Vercel** for deployment
+- 🧪 **Jest & Testing Library** for testing
+- 📱 **Responsive Design** mobile-first
+- 🔍 **SEO Optimized** with meta tags
+- 📈 **Analytics** with Vercel Analytics
+- 🛡️ **Security** with security headers
+- 🔄 **CI/CD** with GitHub Actions
+
+## 🛠️ Tech Stack
+
+### Frontend
+- **Framework**: Next.js 14
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **UI Components**: Shadcn/ui
+- **Icons**: Heroicons
+- **Fonts**: Inter
+
+### Backend
+- **Runtime**: Node.js
+- **Database**: PostgreSQL (Neon)
+- **Authentication**: Stack Auth
+- **ORM**: Native SQL with Neon SDK
+- **Validation**: Zod
+
+### DevOps
+- **Deployment**: Vercel
+- **CI/CD**: GitHub Actions
+- **Monitoring**: Vercel Analytics
+- **Error Tracking**: Sentry
+- **Testing**: Jest, Testing Library, Playwright
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js 18.0 or later
+- npm or yarn
+- Git
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/username/my-nextjs-app.git
+   cd my-nextjs-app
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables**
+   ```bash
+   cp .env.example .env.local
+   ```
+   
+   Edit `.env.local` with your configuration:
+   ```env
+   DATABASE_URL=your_neon_database_url
+   NEXTAUTH_SECRET=your_nextauth_secret
+   NEXTAUTH_URL=http://localhost:3000
+   ```
+
+4. **Set up the database**
+   ```bash
+   npm run db:migrate
+   npm run db:seed
+   ```
+
+5. **Start the development server**
+   ```bash
+   npm run dev
+   ```
+
+6. **Open your browser**
+   Navigate to [http://localhost:3000](http://localhost:3000)
+
+## 💻 Development
+
+### Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
+- `npm run lint:fix` - Fix ESLint issues
+- `npm run type-check` - Run TypeScript compiler
+- `npm run test` - Run tests
+- `npm run test:watch` - Run tests in watch mode
+- `npm run test:coverage` - Run tests with coverage
+- `npm run db:migrate` - Run database migrations
+- `npm run db:seed` - Seed database with sample data
+
+### Code Style
+
+This project uses:
+- **ESLint** for code linting
+- **Prettier** for code formatting
+- **Husky** for Git hooks
+- **lint-staged** for staged files linting
+
+### Git Workflow
+
+1. **Create a feature branch**
+   ```bash
+   git checkout -b feature/amazing-feature
+   ```
+
+2. **Make your changes**
+   ```bash
+   git add .
+   git commit -m "feat: add amazing feature"
+   ```
+
+3. **Push to the branch**
+   ```bash
+   git push origin feature/amazing-feature
+   ```
+
+4. **Open a Pull Request**
+
+### Commit Convention
+
+This project follows [Conventional Commits](https://conventionalcommits.org/):
+
+- `feat:` - New feature
+- `fix:` - Bug fix
+- `docs:` - Documentation changes
+- `style:` - Code style changes
+- `refactor:` - Code refactoring
+- `test:` - Testing changes
+- `chore:` - Build process or auxiliary tool changes
+
+## 🧪 Testing
+
+### Running Tests
+
+```bash
+# Run all tests
+npm run test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run E2E tests
+npm run test:e2e
+```
+
+### Test Structure
+
+```
+tests/
+├── __mocks__/          # Mock files
+├── components/         # Component tests
+├── pages/              # Page tests
+├── utils/              # Utility tests
+├── e2e/                # End-to-end tests
+└── setup.ts            # Test setup
+```
+
+## 🚀 Deployment
+
+### Automatic Deployment
+
+The project automatically deploys to Vercel when:
+- **Staging**: Push to `develop` branch
+- **Production**: Push to `main` branch
+
+### Manual Deployment
+
+```bash
+# Deploy to Vercel
+vercel --prod
+
+# Deploy to staging
+vercel
+```
+
+### Environment Variables
+
+Make sure to configure these environment variables in Vercel:
+
+```env
+DATABASE_URL=your_production_database_url
+NEXTAUTH_SECRET=your_production_secret
+NEXTAUTH_URL=https://your-domain.vercel.app
+```
+
+## 📚 Documentation
+
+- [API Documentation](docs/API.md)
+- [Deployment Guide](docs/DEPLOYMENT.md)
+- [Contributing Guide](docs/CONTRIBUTING.md)
+- [Architecture Overview](docs/ARCHITECTURE.md)
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read our [Contributing Guide](docs/CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+
+### Development Setup
+
+1. Fork the repository
+2. Create your feature branch
+3. Make your changes
+4. Add tests for your changes
+5. Run the test suite
+6. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- [Next.js](https://nextjs.org/) for the amazing framework
+- [Vercel](https://vercel.com/) for hosting and deployment
+- [Tailwind CSS](https://tailwindcss.com/) for styling
+- [Shadcn/ui](https://ui.shadcn.com/) for UI components
+
+## 📞 Support
+
+If you have any questions or need help, please:
+- Open an issue on GitHub
+- Join our Discord community
+- Email us at support@example.com
+
+---
+
+Made with ❤️ by [Your Name](https://github.com/username)
+```
+
+### 8. Package.json Configurado:
+
+```json
+{
+  "name": "my-nextjs-app",
+  "version": "0.0.0-development",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "type-check": "tsc --noEmit",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage --watchAll=false",
+    "test:e2e": "playwright test",
+    "prepare": "husky install",
+    "semantic-release": "semantic-release"
+  },
+  "dependencies": {
+    "next": "14.0.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "typescript": "5.0.0",
+    "@neondatabase/serverless": "latest",
+    "@stackframe/stack": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "20.0.0",
+    "@types/react": "18.2.0",
+    "@types/react-dom": "18.2.0",
+    "@typescript-eslint/eslint-plugin": "6.0.0",
+    "@typescript-eslint/parser": "6.0.0",
+    "eslint": "8.0.0",
+    "eslint-config-next": "14.0.0",
+    "jest": "29.0.0",
+    "jest-environment-jsdom": "29.0.0",
+    "@testing-library/react": "14.0.0",
+    "@testing-library/jest-dom": "6.0.0",
+    "playwright": "1.40.0",
+    "husky": "8.0.0",
+    "lint-staged": "15.0.0",
+    "prettier": "3.0.0",
+    "semantic-release": "22.0.0",
+    "@semantic-release/changelog": "6.0.0",
+    "@semantic-release/git": "10.0.0"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
+  },
+  "release": {
+    "branches": ["main"],
+    "plugins": [
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      "@semantic-release/changelog",
+      "@semantic-release/npm",
+      "@semantic-release/github",
+      [
+        "@semantic-release/git",
+        {
+          "assets": ["CHANGELOG.md", "package.json"],
+          "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+        }
+      ]
+    ]
+  }
+}
+```
+
+## ⚙️ CONFIGURAÇÕES AVANÇADAS
+
+### 1. Configuração de Secrets GitHub:
+
+```bash
+# Configurar secrets via GitHub CLI
+gh secret set VERCEL_TOKEN --body="your_vercel_token"
+gh secret set VERCEL_ORG_ID --body="your_org_id"
+gh secret set VERCEL_PROJECT_ID --body="your_project_id"
+gh secret set SLACK_WEBHOOK --body="your_slack_webhook"
+gh secret set DATABASE_URL --body="your_database_url"
+```
+
+### 2. Configuração de Notifications:
+
+```yaml
+# .github/workflows/notifications.yml
+name: Notifications
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Notify Discord
+      uses: sarisia/actions-status-discord@v1
+      if: always()
+      with:
+        webhook: ${{ secrets.DISCORD_WEBHOOK }}
+        status: ${{ job.status }}
+        title: "Deployment Status"
+        description: "Build and deployment finished"
+```
+
+### 3. Script de Setup Automatizado:
+
+```bash
+#!/bin/bash
+# scripts/setup.sh
+
+set -e
+
+echo "🚀 Setting up development environment..."
+
+# Verificar Node.js
+if ! command -v node &> /dev/null; then
+    echo "❌ Node.js is required but not installed."
+    exit 1
+fi
+
+# Verificar npm
+if ! command -v npm &> /dev/null; then
+    echo "❌ npm is required but not installed."
+    exit 1
+fi
+
+# Instalar dependências
+echo "📦 Installing dependencies..."
+npm ci
+
+# Configurar environment variables
+if [ ! -f ".env.local" ]; then
+    echo "📝 Creating .env.local from template..."
+    cp .env.example .env.local
+    echo "⚠️  Please update .env.local with your configuration"
+fi
+
+# Configurar Husky
+echo "🪝 Setting up Git hooks..."
+npm run prepare
+
+# Verificar build
+echo "🔨 Testing build..."
+npm run build
+
+# Executar testes
+echo "🧪 Running tests..."
+npm run test:ci
+
+echo "✅ Setup completed successfully!"
+echo "🎉 Run 'npm run dev' to start development server"
+```
+
+## 🛠️ TROUBLESHOOTING
+
+### Problema 1: Actions falham no build
+**Causa**: Variáveis de ambiente não configuradas
+**Solução**: Verificar secrets no GitHub e .env.example
+
+### Problema 2: Deploy falha na Vercel
+**Causa**: Configuração incorreta do vercel.json
+**Solução**: Verificar configuração e variáveis de ambiente
+
+### Problema 3: Testes falham no CI
+**Causa**: Dependências ou configuração incorreta
+**Solução**: Verificar jest.config.js e package.json
+
+### Problema 4: Semantic release não funciona
+**Causa**: Commits não seguem conventional commits
+**Solução**: Configurar commitizen e validar formato
+
+## ✅ CHECKLIST FINAL DO REPOSITÓRIO
+
+### Verificações Obrigatórias:
+- [ ] **Repositório**: GitHub repo criado e configurado
+- [ ] **Branches**: Main e develop configurados
+- [ ] **Protection**: Branch protection rules aplicadas
+- [ ] **Actions**: CI/CD workflows funcionando
+- [ ] **Secrets**: Variáveis de ambiente configuradas
+- [ ] **Templates**: Issue e PR templates criados
+- [ ] **Documentation**: README.md completo
+- [ ] **Releases**: Semantic release configurado
+- [ ] **Dependabot**: Dependências atualizadas automaticamente
+- [ ] **Notifications**: Alertas configurados
+- [ ] **Testing**: Testes passando no CI
+- [ ] **Deploy**: Deploy automatizado funcionando
+
+### Validação Final:
+```bash
+# Verificar configuração
+gh repo view
+gh api repos/:owner/:repo/branches/main/protection
+
+# Testar workflow
+git push origin main
+
+# Verificar deploy
+vercel ls
+
+# Verificar dependências
+npm audit
+```
+
+## 🎉 CONCLUSÃO
+
+Este prompt implementa uma configuração completa de repositório GitHub com estratégia de deploy profissional, incluindo:
+- ✅ **CI/CD pipeline** automatizado
+- ✅ **Branch protection** e code review
+- ✅ **Semantic versioning** automatizado
+- ✅ **Deploy automatizado** para Vercel
+- ✅ **Monitoramento** e notificações
+- ✅ **Documentação** completa
+- ✅ **Templates** padronizados
+- ✅ **Segurança** e best practices
+
+**Mantenha sempre as configurações atualizadas e monitore os workflows regularmente!** 
