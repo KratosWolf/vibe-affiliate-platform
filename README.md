@@ -1,10 +1,10 @@
-# 🚀 My Next.js App
+# 🚀 VIBE Affiliate Platform
 
-[![CI/CD Pipeline](https://github.com/username/my-nextjs-app/actions/workflows/ci.yml/badge.svg)](https://github.com/username/my-nextjs-app/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/username/my-nextjs-app/branch/main/graph/badge.svg)](https://codecov.io/gh/username/my-nextjs-app)
+[![CI/CD Pipeline](https://github.com/KratosWolf/vibe-affiliate-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/KratosWolf/vibe-affiliate-platform/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/KratosWolf/vibe-affiliate-platform/branch/main/graph/badge.svg)](https://codecov.io/gh/KratosWolf/vibe-affiliate-platform)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A modern, production-ready Next.js application with TypeScript, Tailwind CSS, and comprehensive DevOps setup.
+A modern, production-ready affiliate marketing platform built with Next.js 14, TypeScript, Tailwind CSS, and comprehensive DevOps setup.
 
 ## 📋 Table of Contents
 
@@ -67,8 +67,8 @@ A modern, production-ready Next.js application with TypeScript, Tailwind CSS, an
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/username/my-nextjs-app.git
-   cd my-nextjs-app
+   git clone https://github.com/KratosWolf/vibe-affiliate-platform.git
+   cd vibe-affiliate-platform
    ```
 
 2. **Install dependencies**
@@ -256,4 +256,4 @@ If you have any questions or need help, please:
 
 ---
 
-Made with ❤️ by [Your Name](https://github.com/username)
+Made with ❤️ by [KratosWolf](https://github.com/KratosWolf)
