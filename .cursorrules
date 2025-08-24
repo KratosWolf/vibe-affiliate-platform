@@ -1,0 +1,185 @@
+# Cursor Rules for VIBE Affiliate Platform
+
+## Project Context
+This is a Next.js 15 affiliate marketing platform with TypeScript, Tailwind CSS, and Shadcn/ui.
+Built with security-first approach following OWASP Top 10 guidelines.
+
+## Code Standards
+- Always use TypeScript with strict mode
+- Implement proper error handling and loading states
+- Follow OWASP Top 10 security guidelines
+- Validate all inputs with Zod
+- Use async/await pattern consistently
+- Keep components small and focused (<200 lines)
+- Implement rate limiting on all API endpoints
+- Use proper TypeScript types for all functions
+
+## Security First
+- Never expose sensitive data in logs or client
+- Always sanitize user inputs and outputs
+- Implement CSRF protection on forms
+- Use HTTPS everywhere in production
+- Configure security headers (CSP, HSTS, etc.)
+- Validate permissions before actions
+- Implement audit logging for critical actions
+- Use prepared statements or ORM for database queries
+
+## File Structure
+```
+src/
+├── app/               # Next.js app router
+├── components/        # Reusable components
+│   ├── ui/           # Shadcn components
+│   └── features/     # Feature-specific components
+├── lib/              # Utilities and configurations
+│   ├── security/     # Security functions
+│   ├── mock-data/    # Mock data for development
+│   ├── validations/  # Zod schemas
+│   └── utils.ts      # Utility functions
+├── hooks/            # Custom React hooks
+└── types/            # TypeScript definitions
+```
+
+## Naming Conventions
+- Components: PascalCase (UserDashboard.tsx)
+- Functions: camelCase (formatCurrency)
+- Constants: UPPER_SNAKE_CASE (API_BASE_URL)
+- Files: kebab-case (user-settings.tsx)
+- Hooks: camelCase with 'use' prefix (useUserData)
+
+## API Development
+- Always validate inputs with Zod schemas
+- Implement proper error responses with consistent format
+- Use rate limiting (upstash/ratelimit)
+- Configure CORS appropriately
+- Return proper HTTP status codes
+- Include request/response types
+
+## Component Development
+- Use React.memo() when appropriate
+- Implement error boundaries for critical components
+- Use Suspense for loading states
+- Follow accessibility guidelines (WCAG)
+- Make components responsive by default
+- Use forwardRef when needed
+
+## Performance
+- Implement lazy loading for heavy components
+- Optimize images with Next.js Image component
+- Use dynamic imports for code splitting
+- Implement proper caching strategies
+- Monitor Core Web Vitals
+- Minimize bundle size
+
+## Testing
+- Write unit tests for utilities and hooks
+- Test API endpoints thoroughly
+- Implement integration tests for critical flows
+- Use React Testing Library for component tests
+- Mock external dependencies properly
+
+## Before Committing
+1. Run TypeScript check: npm run type-check
+2. Run linter: npm run lint
+3. Run tests: npm run test
+4. Update documentation if needed
+5. Verify no sensitive data is exposed
+
+## AI Assistant Behavior
+- Always consider security implications
+- Suggest performance optimizations
+- Maintain consistent code style
+- Update tests when changing code
+- Document complex logic
+- Follow the project's architectural patterns
+- Implement proper error handling
+- Use TypeScript strict typing
+
+## Common Patterns
+
+### API Route Structure
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { ratelimit } from '@/lib/rate-limit';
+
+const schema = z.object({
+  // Define schema
+});
+
+export async function POST(req: NextRequest) {
+  try {
+    // Rate limiting
+    const { success } = await ratelimit.limit(req.ip);
+    if (!success) {
+      return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+    }
+
+    // Validate input
+    const body = await req.json();
+    const validatedData = schema.parse(body);
+
+    // Process request
+    const result = await processRequest(validatedData);
+
+    return NextResponse.json({ success: true, data: result });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Invalid input', details: error.errors }, { status: 400 });
+    }
+    
+    console.error('API Error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+```
+
+### Component Structure
+```typescript
+import React from 'react';
+import { cn } from '@/lib/utils';
+
+interface Props {
+  className?: string;
+  children: React.ReactNode;
+}
+
+const Component: React.FC<Props> = ({ className, children }) => {
+  return (
+    <div className={cn('base-styles', className)}>
+      {children}
+    </div>
+  );
+};
+
+export default Component;
+```
+
+### Mock Data Pattern
+```typescript
+export const mockData = [
+  // Mock data objects
+];
+
+export const simulateDelay = (ms: number = 1000) => 
+  new Promise(resolve => setTimeout(resolve, ms));
+
+export async function getMockData(): Promise<DataType[]> {
+  await simulateDelay(500);
+  return mockData;
+}
+```
+
+## Security Checklist
+- [ ] Input validation with Zod
+- [ ] Rate limiting implemented
+- [ ] HTTPS enforced
+- [ ] Security headers configured
+- [ ] CORS properly set
+- [ ] Authentication checks
+- [ ] Authorization validation
+- [ ] Sensitive data protection
+- [ ] SQL injection prevention
+- [ ] XSS protection
+- [ ] CSRF tokens (forms)
+- [ ] Audit logging
